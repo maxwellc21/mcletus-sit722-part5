@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: library
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  book_catalog:
+    build: ./book_catalog
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://library_db_1t1f_user:fQPtCz66q8JXFuuuI7U4M8gWEJJgBFhG@dpg-crsec2d6l47c73cv71lg-a.singapore-postgres.render.com/library_db_1t1f
+    depends_on:
+      - postgres
+
+  inventory_management:
+    build: ./inventory_management
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://library_db_1t1f_user:fQPtCz66q8JXFuuuI7U4M8gWEJJgBFhG@dpg-crsec2d6l47c73cv71lg-a.singapore-postgres.render.com/library_db_1t1f
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

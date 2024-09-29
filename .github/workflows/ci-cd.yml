@@ -22,7 +22,7 @@ jobs:
     - name: Log in to Azure
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}  # Set this secret in GitHub
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     # Step 4: Set up Terraform
     - name: Set up Terraform
@@ -30,43 +30,48 @@ jobs:
       with:
         terraform_version: 1.0.0
 
-    # Step 5: Terraform Init (infrastructure directory)
+    # Step 5: Initialize Terraform
     - name: Terraform Init
       working-directory: terraform
       run: terraform init
 
-    # Step 6: Terraform Plan (infrastructure directory)
+    # Step 6: Import existing resource group into Terraform state (if not imported)
+    - name: Import Resource Group
+      working-directory: terraform
+      run: terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
+
+    # Step 7: Terraform Plan
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
-    # Step 7: Terraform Apply (infrastructure directory)
+    # Step 8: Terraform Apply
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
 
-    # Step 8: Log in to Azure Container Registry (ACR) AFTER it's created by Terraform
-    - name: Log in to Azure Container Registry
-      run: az acr login --name libraryreg
+    # Step 9: Log in to Azure Container Registry after it is created
+    - name: Log in to ACR
+      run: az acr login --name libraryreg9324
 
-    # Step 9: Build Docker images
+    # Step 10: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 10: Push Docker images
+    # Step 11: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 11: Set up kubectl for Kubernetes
+    # Step 12: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 12: Get AKS credentials using Service Principal
+    # Step 13: Get AKS credentials using Service Principal
     - name: Get AKS credentials
       run: az aks get-credentials --resource-group libraryproj --name libraryproj
 
-    # Step 13: Deploy Kubernetes Resources
+    # Step 14: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

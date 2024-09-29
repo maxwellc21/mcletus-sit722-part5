@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-management-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inventory-management
+  template:
+    metadata:
+      labels:
+        app: inventory-management
+    spec:
+      containers:
+      - name: inventory-management
+        image: libraryreg9324.azurecr.io/inventory_management:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: DATABASE_URL
+          value: postgresql://library_db_1t1f_user:fQPtCz66q8JXFuuuI7U4M8gWEJJgBFhG@dpg-crsec2d6l47c73cv71lg-a.singapore-postgres.render.com/library_db_1t1f
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-management-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: inventory-management
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001

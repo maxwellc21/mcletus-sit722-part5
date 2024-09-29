@@ -10,77 +10,91 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v2
 
+    # Step 2: Set up Docker Buildx for building images
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
-    - name: Log in to Azure using Service Principal
+    # Step 3: Log in to Azure using Service Principal
+    - name: Log in to Azure
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    # Step 4: Set up Terraform
     - name: Set up Terraform
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.0.0
 
+    # Step 5: Initialize Terraform
     - name: Terraform Init
       working-directory: terraform
       run: terraform init
 
-    # Import existing Resource Group into Terraform state if needed
-    - name: Import Resource Group
+    # Step 6: Check if Resource Group exists and import if needed
+    - name: Check and Import Resource Group
       working-directory: terraform
       run: |
-        if az group exists --name ${{ secrets.RESOURCE_GROUP_NAME }}; then
-          terraform import azurerm_resource_group.resource_group /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }} || true
+        if az group exists --name libraryproj; then
+          terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
         fi
 
-    # Import existing Azure Container Registry into Terraform state if needed
-    - name: Import ACR
+    # Step 7: Check if Azure Container Registry exists and import if needed
+    - name: Check and Import ACR
       working-directory: terraform
       run: |
-        if az acr show --name ${{ secrets.ACR_NAME }}; then
-          terraform import azurerm_container_registry.acr /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.ACR_NAME }} || true
+        if az acr show --name libraryreg9324; then
+          terraform import azurerm_container_registry.libraryreg /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerRegistry/registries/libraryreg9324 || true
         fi
 
-    # Import existing Kubernetes Cluster into Terraform state if needed
-    - name: Import Kubernetes Cluster
+    # Step 8: Check if Kubernetes cluster exists and import if needed
+    - name: Check and Import Kubernetes Cluster
       working-directory: terraform
       run: |
-        if az aks show --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} --name ${{ secrets.AKS_NAME }}; then
-          terraform import azurerm_kubernetes_cluster.kubernetes_cluster /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AKS_NAME }} || true
+        if az aks show --resource-group libraryproj --name libraryproj; then
+          terraform import azurerm_kubernetes_cluster.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerService/managedClusters/libraryproj || true
         fi
 
+    # Step 9: Terraform Plan
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
+    # Step 10: Terraform Apply
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
 
-    - name: Log in to Azure Container Registry
-      run: az acr login --name ${{ secrets.ACR_NAME }}
+    # Step 11: Log in to Azure Container Registry
+    - name: Log in to ACR
+      run: az acr login --name libraryreg9324
 
+    # Step 12: Grant execute permissions to all .sh files
     - name: Grant Execute Permissions
       run: chmod +x ./scripts/*.sh
 
+    # Step 13: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
+    # Step 14: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
+    # Step 15: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    - name: Get AKS credentials using Service Principal
-      run: az aks get-credentials --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} --name ${{ secrets.AKS_NAME }}
+    # Step 16: Get AKS credentials using Service Principal
+    - name: Get AKS credentials
+      run: az aks get-credentials --resource-group libraryproj --name libraryproj
 
+    # Step 17: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

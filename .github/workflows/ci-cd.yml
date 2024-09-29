@@ -147,7 +147,7 @@ jobs:
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 15: Set up kubectl for Kubernetes
+    # Step 15: Set up kubectl for Kubernetes.
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:

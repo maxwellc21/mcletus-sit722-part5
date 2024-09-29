@@ -65,8 +65,24 @@ jobs:
     - name: Check and Import ACR
       working-directory: terraform
       run: |
+        echo "Checking if ACR '${{ secrets.AZURE_ACR_NAME }}' exists..."
         if az acr show --name ${{ secrets.AZURE_ACR_NAME }}; then
-          terraform import azurerm_container_registry.${{ secrets.AZURE_ACR_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.AZURE_ACR_NAME }} || true
+          echo "Azure Container Registry exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_container_registry.libraryreg; then
+            echo "Azure Container Registry already imported into Terraform. Skipping import."
+          else
+            echo "Azure Container Registry not found in Terraform state. Importing now..."
+            terraform import -input=false \
+              -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+              -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
+              azurerm_container_registry.libraryreg /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.AZURE_ACR_NAME }} || {
+              echo "Azure Container Registry import failed or already imported.";
+              exit 0;
+            }
+          fi
+        else
+          echo "Azure Container Registry does not exist. Skipping import.";
         fi
 
     # Step 8: Check if Kubernetes cluster exists and import if needed

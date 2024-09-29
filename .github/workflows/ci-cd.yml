@@ -14,12 +14,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up Docker Buildx
+    # Step 2: Set up Docker Buildx for building images
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
-    # Step 3: Log in to Azure
-    - name: Azure Login
+    # Step 3: Log in to Azure using Service Principal
+    - name: Log in to Azure
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -30,36 +30,87 @@ jobs:
       with:
         terraform_version: 1.0.0
 
-    # Step 5: Terraform Init
+    # Step 5: Initialize Terraform
     - name: Terraform Init
       working-directory: ./terraform
       run: terraform init
 
-    # Step 6: Import Resource Group if needed
-    - name: Import Resource Group
+    # Step 6: Check if Resource Group exists and import if needed
+    - name: Check and Import Resource Group
       working-directory: ./terraform
       run: |
-        if az group exists --name ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} && \
-           ! terraform state list | grep -q azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
-          terraform import azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
+        echo "Checking if Resource Group '${{ secrets.AZURE_RESOURCE_GROUP_NAME }}' exists..."
+        if az group exists --name ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
+          echo "Resource Group exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
+            echo "Resource Group already imported into Terraform. Skipping import."
+          else
+            echo "Resource Group not found in Terraform state. Importing now..."
+            terraform import -input=false \
+              -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+              -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+              -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+              -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
+              azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }} || {
+              echo "Resource Group import failed or already imported.";
+              exit 0;
+            }
+          fi
+        else
+          echo "Resource Group does not exist. Skipping import.";
         fi
 
-    # Step 7: Import ACR if needed
-    - name: Import ACR
+    # Step 7: Check if Azure Container Registry exists and import if needed
+    - name: Check and Import ACR
       working-directory: ./terraform
       run: |
-        if az acr show --name ${{ secrets.AZURE_ACR_NAME }} && \
-           ! terraform state list | grep -q azurerm_container_registry.libraryreg; then
-          terraform import azurerm_container_registry.libraryreg /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.AZURE_ACR_NAME }}
+        echo "Checking if ACR '${{ secrets.AZURE_ACR_NAME }}' exists..."
+        if az acr show --name ${{ secrets.AZURE_ACR_NAME }}; then
+          echo "Azure Container Registry exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_container_registry.libraryreg; then
+            echo "Azure Container Registry already imported into Terraform. Skipping import."
+          else
+            echo "Azure Container Registry not found in Terraform state. Importing now..."
+            terraform import -input=false \
+              -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+              -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+              -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+              -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
+              azurerm_container_registry.libraryreg /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.AZURE_ACR_NAME }} || {
+              echo "Azure Container Registry import failed or already imported.";
+              exit 0;
+            }
+          fi
+        else
+          echo "Azure Container Registry does not exist. Skipping import.";
         fi
 
-    # Step 8: Import AKS if needed
-    - name: Import AKS Cluster
+    # Step 8: Check if Kubernetes cluster exists and import if needed
+    - name: Check and Import Kubernetes Cluster
       working-directory: ./terraform
       run: |
-        if az aks show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} --name ${{ secrets.AZURE_AKS_NAME }} && \
-           ! terraform state list | grep -q azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }}; then
-          terraform import azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AZURE_AKS_NAME }}
+        echo "Checking if Kubernetes cluster '${{ secrets.AZURE_AKS_NAME }}' exists..."
+        if az aks show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} --name ${{ secrets.AZURE_AKS_NAME }}; then
+          echo "Kubernetes cluster exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }}; then
+            echo "Kubernetes cluster already imported into Terraform. Skipping import."
+          else
+            echo "Kubernetes cluster not found in Terraform state. Importing now..."
+            terraform import -input=false \
+              -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+              -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+              -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+              -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
+              azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AZURE_AKS_NAME }} || {
+              echo "Kubernetes cluster import failed or already imported.";
+              exit 0;
+            }
+          fi
+        else
+          echo "Kubernetes cluster does not exist. Skipping import.";
         fi
 
     # Step 9: Terraform Plan
@@ -75,7 +126,6 @@ jobs:
 
     # Step 10: Terraform Apply
     - name: Terraform Apply
-      if: success()
       working-directory: ./terraform
       run: |
         terraform apply -auto-approve \
@@ -85,30 +135,30 @@ jobs:
           -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
           -var="location=${{ secrets.AZURE_LOCATION }}"
 
-    # Step 11: Log in to ACR
-    - name: ACR Login
+    # Step 11: Log in to Azure Container Registry
+    - name: Log in to ACR
       run: az acr login --name ${{ secrets.AZURE_ACR_NAME }}
 
-    # Step 12: Grant execute permissions to shell scripts
+    # Step 12: Grant execute permissions to all .sh files
     - name: Grant Execute Permissions
       run: chmod +x ./scripts/*.sh
 
-    # Step 13: Build Docker Images
-    - name: Build Docker Images
+    # Step 13: Build Docker images
+    - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 14: Push Docker Images
-    - name: Push Docker Images
+    # Step 14: Push Docker images
+    - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 15: Set up kubectl
+    # Step 15: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 16: Get AKS Credentials
-    - name: Get AKS Credentials
+    # Step 16: Get AKS credentials using Service Principal
+    - name: Get AKS credentials
       run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} --name ${{ secrets.AZURE_AKS_NAME }}
 
     # Step 17: Deploy Kubernetes Resources

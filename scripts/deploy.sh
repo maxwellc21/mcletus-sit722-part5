@@ -1,2 +1,2 @@
-#!/bin/bash .
+#!/bin/bash
 kubectl apply -f ./scripts/deployment.yml

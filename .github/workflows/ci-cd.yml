@@ -35,66 +35,41 @@ jobs:
       working-directory: terraform
       run: terraform init
 
-    # Step 6: Check if Resource Group exists and import if needed
-    - name: Check and Import Resource Group
+    # Step 6: Apply Terraform and capture outputs
+    - name: Terraform Apply and Capture Outputs
       working-directory: terraform
       run: |
-        if az group exists --name libraryproj; then
-          terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
-        fi
+        terraform apply -auto-approve
+        echo "REGISTRY_NAME=$(terraform output -raw registry_name)" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
+        echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
 
-    # Step 7: Check if Azure Container Registry exists and import if needed
-    - name: Check and Import ACR
-      working-directory: terraform
-      run: |
-        if az acr show --name libraryreg9324; then
-          terraform import azurerm_container_registry.libraryreg /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerRegistry/registries/libraryreg9324 || true
-        fi
-
-    # Step 8: Check if Kubernetes cluster exists and import if needed
-    - name: Check and Import Kubernetes Cluster
-      working-directory: terraform
-      run: |
-        if az aks show --resource-group libraryproj --name libraryproj; then
-          terraform import azurerm_kubernetes_cluster.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerService/managedClusters/libraryproj || true
-        fi
-
-    # Step 9: Terraform Plan
-    - name: Terraform Plan
-      working-directory: terraform
-      run: terraform plan
-
-    # Step 10: Terraform Apply
-    - name: Terraform Apply
-      working-directory: terraform
-      run: terraform apply -auto-approve
-
-    # Step 11: Log in to Azure Container Registry
+    # Step 7: Log in to Azure Container Registry (ACR)
     - name: Log in to ACR
-      run: az acr login --name libraryreg9324
+      run: az acr login --name ${{ env.REGISTRY_NAME }}
 
-    # Step 12: Grant execute permissions to all .sh files
+    # Step 8: Grant execute permissions to all .sh files
     - name: Grant Execute Permissions
       run: chmod +x ./scripts/*.sh
 
-    # Step 13: Build Docker images
+    # Step 9: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 14: Push Docker images
+    # Step 10: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 15: Set up kubectl for Kubernetes
+    # Step 11: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 16: Get AKS credentials using Service Principal
+    # Step 12: Get AKS credentials using Service Principal
     - name: Get AKS credentials
-      run: az aks get-credentials --resource-group libraryproj --name libraryproj
+      run: az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }}
 
-    # Step 17: Deploy Kubernetes Resources
+    # Step 13: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

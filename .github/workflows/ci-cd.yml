@@ -35,43 +35,48 @@ jobs:
       working-directory: terraform
       run: terraform init
 
-    # Step 6: Import existing resource group into Terraform state (if not imported)
+    # Step 6: Import existing resource group into Terraform state (if not already imported)
     - name: Import Resource Group
       working-directory: terraform
       run: terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
 
-    # Step 7: Terraform Plan
+    # Step 7: Import existing Azure Container Registry (if not already imported)
+    - name: Import ACR
+      working-directory: terraform
+      run: terraform import azurerm_container_registry.libraryreg /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerRegistry/registries/libraryreg9324 || true
+
+    # Step 8: Terraform Plan
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
-    # Step 8: Terraform Apply
+    # Step 9: Terraform Apply
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
 
-    # Step 9: Log in to Azure Container Registry after it is created
+    # Step 10: Log in to Azure Container Registry
     - name: Log in to ACR
       run: az acr login --name libraryreg9324
 
-    # Step 10: Build Docker images
+    # Step 11: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 11: Push Docker images
+    # Step 12: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 12: Set up kubectl for Kubernetes
+    # Step 13: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 13: Get AKS credentials using Service Principal
+    # Step 14: Get AKS credentials using Service Principal
     - name: Get AKS credentials
       run: az aks get-credentials --resource-group libraryproj --name libraryproj
 
-    # Step 14: Deploy Kubernetes Resources
+    # Step 15: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

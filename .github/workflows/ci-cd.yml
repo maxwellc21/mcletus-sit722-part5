@@ -18,7 +18,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
-    # Step 3: Log in to Azure using Service Principal
+    # Step 3: Log in to Azure using Service. Principal
     - name: Log in to Azure
       uses: azure/login@v1
       with:

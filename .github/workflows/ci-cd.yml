@@ -51,6 +51,7 @@ jobs:
               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
               -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
               azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }} || {
               echo "Resource Group import failed or already imported.";
               exit 0;

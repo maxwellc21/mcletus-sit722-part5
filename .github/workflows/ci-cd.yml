@@ -35,7 +35,7 @@ jobs:
       working-directory: terraform
       run: terraform init
 
-    # Step 6: Apply Terraform and capture outputs
+    # Step 6: Apply Terraform and Capture Outputs
     - name: Terraform Apply and Capture Outputs
       working-directory: terraform
       run: |
@@ -44,32 +44,56 @@ jobs:
         echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
         echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
 
-    # Step 7: Log in to Azure Container Registry (ACR)
+    # Step 7: Check and Import Resource Group if it exists
+    - name: Check and Import Resource Group
+      working-directory: terraform
+      run: |
+        if az group exists --name ${{ env.RESOURCE_GROUP }}; then
+          terraform import azurerm_resource_group.${{ env.RESOURCE_GROUP }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }} || true
+        fi
+
+    # Step 8: Check and Import Azure Container Registry (ACR) if it exists
+    - name: Check and Import ACR
+      working-directory: terraform
+      run: |
+        if az acr show --name ${{ env.REGISTRY_NAME }}; then
+          terraform import azurerm_container_registry.${{ env.REGISTRY_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.ContainerRegistry/registries/${{ env.REGISTRY_NAME }} || true
+        fi
+
+    # Step 9: Check and Import Kubernetes Cluster if it exists
+    - name: Check and Import Kubernetes Cluster
+      working-directory: terraform
+      run: |
+        if az aks show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }}; then
+          terraform import azurerm_kubernetes_cluster.${{ env.CLUSTER_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.ContainerService/managedClusters/${{ env.CLUSTER_NAME }} || true
+        fi
+
+    # Step 10: Log in to Azure Container Registry (ACR)
     - name: Log in to ACR
       run: az acr login --name ${{ env.REGISTRY_NAME }}
 
-    # Step 8: Grant execute permissions to all .sh files
+    # Step 11: Grant execute permissions to all .sh files
     - name: Grant Execute Permissions
       run: chmod +x ./scripts/*.sh
 
-    # Step 9: Build Docker images
+    # Step 12: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 10: Push Docker images
+    # Step 13: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 11: Set up kubectl for Kubernetes
+    # Step 14: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 12: Get AKS credentials using Service Principal
+    # Step 15: Get AKS credentials using Service Principal
     - name: Get AKS credentials
       run: az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }}
 
-    # Step 13: Deploy Kubernetes Resources
+    # Step 16: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

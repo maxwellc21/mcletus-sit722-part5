@@ -32,19 +32,21 @@ jobs:
 
     # Step 5: Initialize Terraform
     - name: Terraform Init
-      run: terraform init -chdir=terraform
+      working-directory: ./terraform
+      run: terraform init
 
     # Step 6: Check if Resource Group exists and import if needed
     - name: Check and Import Resource Group
+      working-directory: ./terraform
       run: |
         echo "Checking if Resource Group '${{ secrets.AZURE_RESOURCE_GROUP_NAME }}' exists..."
         if az group exists --name ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
           echo "Resource Group exists. Checking if it's already imported into Terraform..."
-          if terraform state list -chdir=terraform | grep azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
+          if terraform state list | grep azurerm_resource_group.${{ secrets.AZURE_RESOURCE_GROUP_NAME }}; then
             echo "Resource Group already imported into Terraform. Skipping import."
           else
             echo "Resource Group not found in Terraform state. Importing now..."
-            terraform import -input=false -chdir=terraform \
+            terraform import -input=false \
               -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
@@ -61,15 +63,16 @@ jobs:
 
     # Step 7: Check if Azure Container Registry exists and import if needed
     - name: Check and Import ACR
+      working-directory: ./terraform
       run: |
         echo "Checking if ACR '${{ secrets.AZURE_ACR_NAME }}' exists..."
         if az acr show --name ${{ secrets.AZURE_ACR_NAME }}; then
           echo "Azure Container Registry exists. Checking if it's already imported into Terraform..."
-          if terraform state list -chdir=terraform | grep azurerm_container_registry.libraryreg; then
+          if terraform state list | grep azurerm_container_registry.libraryreg; then
             echo "Azure Container Registry already imported into Terraform. Skipping import."
           else
             echo "Azure Container Registry not found in Terraform state. Importing now..."
-            terraform import -input=false -chdir=terraform \
+            terraform import -input=false \
               -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
@@ -86,15 +89,16 @@ jobs:
 
     # Step 8: Check if Kubernetes cluster exists and import if needed
     - name: Check and Import Kubernetes Cluster
+      working-directory: ./terraform
       run: |
         echo "Checking if Kubernetes cluster '${{ secrets.AZURE_AKS_NAME }}' exists..."
         if az aks show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} --name ${{ secrets.AZURE_AKS_NAME }}; then
           echo "Kubernetes cluster exists. Checking if it's already imported into Terraform..."
-          if terraform state list -chdir=terraform | grep azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }}; then
+          if terraform state list | grep azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }}; then
             echo "Kubernetes cluster already imported into Terraform. Skipping import."
           else
             echo "Kubernetes cluster not found in Terraform state. Importing now..."
-            terraform import -input=false -chdir=terraform \
+            terraform import -input=false \
               -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
@@ -111,8 +115,8 @@ jobs:
 
     # Step 9: Terraform Plan
     - name: Terraform Plan
-      run: terraform plan -chdir=terraform \
-                          -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+      working-directory: ./terraform
+      run: terraform plan -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
                           -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
                           -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
                           -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
@@ -120,12 +124,12 @@ jobs:
 
     # Step 10: Terraform Apply
     - name: Terraform Apply
-      run: terraform apply -chdir=terraform -auto-approve \
-                            -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
-                            -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
-                            -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
-                            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-                            -var="location=${{ secrets.AZURE_LOCATION }}"
+      working-directory: ./terraform
+      run: terraform apply -auto-approve -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+                                               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+                                               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+                                               -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+                                               -var="location=${{ secrets.AZURE_LOCATION }}"
 
     # Step 11: Log in to Azure Container Registry
     - name: Log in to ACR

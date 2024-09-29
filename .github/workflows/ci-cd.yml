@@ -116,20 +116,22 @@ jobs:
     # Step 9: Terraform Plan
     - name: Terraform Plan
       working-directory: ./terraform
-      run: terraform plan -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
-                          -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
-                          -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
-                          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-                          -var="location=${{ secrets.AZURE_LOCATION }}"
+      run: terraform plan \
+           -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+           -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+           -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+           -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+           -var="location=${{ secrets.AZURE_LOCATION }}"
 
     # Step 10: Terraform Apply
     - name: Terraform Apply
       working-directory: ./terraform
-      run: terraform apply -auto-approve -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
-                                               -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
-                                               -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
-                                               -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-                                               -var="location=${{ secrets.AZURE_LOCATION }}"
+      run: terraform apply -auto-approve \
+           -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+           -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+           -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+           -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+           -var="location=${{ secrets.AZURE_LOCATION }}"
 
     # Step 11: Log in to Azure Container Registry
     - name: Log in to ACR

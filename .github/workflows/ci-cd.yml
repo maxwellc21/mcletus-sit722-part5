@@ -42,6 +42,7 @@ jobs:
         if az group exists --name libraryproj; then
           terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
         fi
+
     # Step 7: Check if Azure Container Registry exists and import if needed
     - name: Check and Import ACR
       working-directory: terraform
@@ -49,6 +50,7 @@ jobs:
         if az acr show --name libraryreg9324; then
           terraform import azurerm_container_registry.libraryreg /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerRegistry/registries/libraryreg9324 || true
         fi
+
     # Step 8: Check if Kubernetes cluster exists and import if needed
     - name: Check and Import Kubernetes Cluster
       working-directory: terraform
@@ -56,6 +58,7 @@ jobs:
         if az aks show --resource-group libraryproj --name libraryproj; then
           terraform import azurerm_kubernetes_cluster.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj/providers/Microsoft.ContainerService/managedClusters/libraryproj || true
         fi
+
     # Step 9: Terraform Plan
     - name: Terraform Plan
       working-directory: terraform

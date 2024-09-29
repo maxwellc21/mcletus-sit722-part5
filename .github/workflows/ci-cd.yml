@@ -91,8 +91,26 @@ jobs:
     - name: Check and Import Kubernetes Cluster
       working-directory: terraform
       run: |
+        echo "Checking if Kubernetes cluster '${{ secrets.AZURE_AKS_NAME }}' exists..."
         if az aks show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_NAME }} --name ${{ secrets.AZURE_AKS_NAME }}; then
-          terraform import azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AZURE_AKS_NAME }} || true
+          echo "Kubernetes cluster exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }}; then
+            echo "Kubernetes cluster already imported into Terraform. Skipping import."
+          else
+            echo "Kubernetes cluster not found in Terraform state. Importing now..."
+            terraform import -input=false \
+              -var="resource_group_name=${{ secrets.AZURE_RESOURCE_GROUP_NAME }}" \
+              -var="acr_name=${{ secrets.AZURE_ACR_NAME }}" \
+              -var="aks_name=${{ secrets.AZURE_AKS_NAME }}" \
+              -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              -var="location=${{ secrets.AZURE_LOCATION }}" \
+              azurerm_kubernetes_cluster.${{ secrets.AZURE_AKS_NAME }} /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AZURE_AKS_NAME }} || {
+              echo "Kubernetes cluster import failed or already imported.";
+              exit 0;
+            }
+          fi
+        else
+          echo "Kubernetes cluster does not exist. Skipping import.";
         fi
 
     # Step 9: Terraform Plan

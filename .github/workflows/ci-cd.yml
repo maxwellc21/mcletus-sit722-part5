@@ -35,37 +35,28 @@ jobs:
       working-directory: terraform
       run: terraform init
 
-    # Step 6: Check if Resource Group exists and import if needed
-    - name: Check and Import Resource Group
+    # Step 6: Import existing Resource Group into Terraform state
+    - name: Import Resource Group
       working-directory: terraform
       run: |
         if az group exists --name ${{ secrets.RESOURCE_GROUP_NAME }}; then
-          echo "Resource group exists, importing into Terraform..."
           terraform import azurerm_resource_group.libraryproj /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }} || true
-        else
-          echo "Resource group does not exist, continuing..."
         fi
 
-    # Step 7: Check if Azure Container Registry exists and import if needed
-    - name: Check and Import ACR
+    # Step 7: Import existing Azure Container Registry into Terraform state
+    - name: Import ACR
       working-directory: terraform
       run: |
         if az acr show --name ${{ secrets.ACR_NAME }}; then
-          echo "ACR exists, importing into Terraform..."
           terraform import azurerm_container_registry.libraryreg /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerRegistry/registries/${{ secrets.ACR_NAME }} || true
-        else
-          echo "ACR does not exist, continuing..."
         fi
 
     # Step 8: Check if Kubernetes cluster exists and import if needed
-    - name: Check and Import Kubernetes Cluster
+    - name: Import Kubernetes Cluster
       working-directory: terraform
       run: |
         if az aks show --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} --name ${{ secrets.AKS_NAME }}; then
-          echo "Kubernetes cluster exists, importing into Terraform..."
           terraform import azurerm_kubernetes_cluster.libraryproj /subscriptions/${{ secrets.SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }}/providers/Microsoft.ContainerService/managedClusters/${{ secrets.AKS_NAME }} || true
-        else
-          echo "Kubernetes cluster does not exist, continuing..."
         fi
 
     # Step 9: Terraform Plan

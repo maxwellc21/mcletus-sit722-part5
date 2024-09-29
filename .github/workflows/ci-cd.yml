@@ -41,11 +41,16 @@ jobs:
       run: |
         echo "Checking if Resource Group 'libraryproj' exists..."
         if az group exists --name libraryproj; then
-          echo "Resource Group exists. Attempting to import into Terraform..."
-          terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || {
-            echo "Resource Group import failed or already imported.";
-            exit 0;
-          }
+          echo "Resource Group exists. Checking if it's already imported into Terraform..."
+          if terraform state list | grep azurerm_resource_group.libraryproj; then
+            echo "Resource Group already imported into Terraform. Skipping import."
+          else
+            echo "Resource Group not found in Terraform state. Importing now..."
+            terraform import -input=false azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || {
+              echo "Resource Group import failed or already imported.";
+              exit 0;
+            }
+          fi
         else
           echo "Resource Group does not exist. Skipping import.";
         fi

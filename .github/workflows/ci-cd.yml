@@ -59,24 +59,28 @@ jobs:
     - name: Log in to ACR
       run: az acr login --name libraryreg9324
 
-    # Step 11: Build Docker images
+    # Step 11: Grant execute permissions to all .sh files
+    - name: Grant Execute Permissions
+      run: chmod +x ./scripts/*.sh
+
+    # Step 12: Build Docker images
     - name: Build Docker images
       run: ./scripts/build-image.sh
 
-    # Step 12: Push Docker images
+    # Step 13: Push Docker images
     - name: Push Docker images
       run: ./scripts/push-image.sh
 
-    # Step 13: Set up kubectl for Kubernetes
+    # Step 14: Set up kubectl for Kubernetes
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
         version: 'v1.20.0'
 
-    # Step 14: Get AKS credentials using Service Principal
+    # Step 15: Get AKS credentials using Service Principal
     - name: Get AKS credentials
       run: az aks get-credentials --resource-group libraryproj --name libraryproj
 
-    # Step 15: Deploy Kubernetes Resources
+    # Step 16: Deploy Kubernetes Resources
     - name: Deploy Kubernetes Resources
       run: ./scripts/deploy.sh

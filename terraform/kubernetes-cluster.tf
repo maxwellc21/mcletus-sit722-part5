@@ -1,7 +1,7 @@
 resource "azurerm_kubernetes_cluster" "libraryproj" {
   name                = var.aks_name
-  location            = azurerm_resource_group.libraryproj.location
-  resource_group_name = azurerm_resource_group.libraryproj.name
+  location            = var.location
+  resource_group_name = var.resource_group_name
   dns_prefix          = var.aks_name
 
   default_node_pool {

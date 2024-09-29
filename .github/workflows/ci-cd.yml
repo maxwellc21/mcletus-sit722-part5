@@ -39,8 +39,15 @@ jobs:
     - name: Check and Import Resource Group
       working-directory: terraform
       run: |
+        echo "Checking if Resource Group 'libraryproj' exists..."
         if az group exists --name libraryproj; then
-          terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || true
+          echo "Resource Group exists. Attempting to import into Terraform..."
+          terraform import azurerm_resource_group.libraryproj /subscriptions/92f7c0f2-820b-4c2b-b15c-133bb77ef867/resourceGroups/libraryproj || {
+            echo "Resource Group import failed or already imported.";
+            exit 0;
+          }
+        else
+          echo "Resource Group does not exist. Skipping import.";
         fi
 
     # Step 7: Check if Azure Container Registry exists and import if needed
